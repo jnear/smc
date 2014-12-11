@@ -7,3 +7,6 @@ Exposure = Struct.new(:path, :constraints, :controller, :action) do
   end
 end
 
+require '/home/ubuntu/derailer/lib/derailer/viz/exposures.rb'
+
+puts $read_exposures
