@@ -10,3 +10,5 @@ end
 require '/home/ubuntu/derailer/lib/derailer/viz/exposures.rb'
 
 puts $read_exposures
+puts $data_model
+
