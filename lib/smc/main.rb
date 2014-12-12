@@ -20,12 +20,30 @@ def mk_data_model_sigs
   alloy_sigs
 end
 
+def log(str)
+#nothing yet
+end
+
 def mk_one_op(exposure)
-  exposure.path.to_alloy
+  begin
+    exposure.path.to_alloy
+  rescue => msg
+    log "error converting " + exposure.to_s + ": " + msg.to_s
+  end
+end
+
+def filter_op(exp)
+#  puts exp
+  case exp
+  when "a_string", "_csrf_token", "nil"
+    false
+  else
+    true
+  end
 end
 
 def mk_op_sigs
-  $read_exposures.map{|x| mk_one_op(x)}.join("\n")
+  $read_exposures.map{|x| mk_one_op(x)}.select{|x| filter_op(x)}.join("\n")
 end
 
 
