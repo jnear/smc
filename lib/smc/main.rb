@@ -1,4 +1,6 @@
+require 'pry'
 require File.expand_path(File.dirname(__FILE__) + '/exp')
+require File.expand_path(File.dirname(__FILE__) + '/transform_ast')
 
 Exposure = Struct.new(:path, :constraints, :controller, :action) do
   def to_s
@@ -26,7 +28,7 @@ end
 
 def mk_one_op(exposure)
   begin
-    exposure.path.to_alloy
+    exposure.path.to_simpleAst
   rescue => msg
     log "error converting " + exposure.to_s + ": " + msg.to_s
   end
@@ -43,7 +45,8 @@ def filter_op(exp)
 end
 
 def mk_op_sigs
-  $read_exposures.map{|x| mk_one_op(x)}.select{|x| filter_op(x)}.join("\n")
+#  $read_exposures.map{|x| mk_one_op(x)}.select{|x| filter_op(x)}.join("\n")
+  $read_exposures.take(10).map{|x| mk_one_op(x)}.map{|x| process(x)}.join("\n")
 end
 
 

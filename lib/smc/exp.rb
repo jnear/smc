@@ -1,4 +1,7 @@
 require 'json'
+require 'fnruby'
+
+data { SimpleAST = String(str) | Id(e) | Ref(obj, field) | BinOp(a, op, b) | Invoke(obj, meth, args) }
 
 class Exp
   def initialize(type, *args)
@@ -10,6 +13,33 @@ class Exp
     "Exp.new(" + ([@type] + @args).map{|x| x.to_exp}.join(", ") + ")"
   end
   alias :to_s :to_exp
+
+  def to_simpleAst
+    if @type == "String" then
+      String "a_string"
+    else
+      case @args.length
+      when 0
+        Id @type.to_simpleAst
+      when 1
+        Id @args[0].to_simpleAst
+      when 2
+        a, b = @args
+        Ref(a.to_simpleAst, b.to_simpleAst)
+      else
+        a, b, c = @args.take(3)
+        if ["+","-", "implies", "==", "and", "or"].include? b then
+          #puts @args.map{|x| x.to_s + ": " + x.class.to_s + " = " + x.to_simpleAst.to_s}.join(", ")
+          BinOp(a.to_simpleAst, b.to_simpleAst, c.to_simpleAst)
+        elsif b == "query" then
+          Invoke(a.to_simpleAst, "find", c.to_simpleAst)
+        else
+          Invoke(a.to_simpleAst, b.to_simpleAst, @args.drop(2).map{|x| x.to_simpleAst})
+        end
+      end
+    end
+  end
+
 
   def to_alloy
     if @type == "String" then
@@ -52,6 +82,7 @@ class Symbol
     JSON.generate(self.to_s, quirks_mode: true)
   end
   alias :to_alloy :to_s
+  alias :to_simpleAst :to_s
 end
 
 class String
@@ -66,6 +97,14 @@ class String
       self
     end
   end
+
+  def to_simpleAst
+    if md = /find_all_by_(.+)_id/.match(self) then
+      String "find_by_#{md[1]}"
+    else
+      String self
+    end
+  end
 end
 
 class NilClass
@@ -73,6 +112,9 @@ class NilClass
     ":nil"
   end
   def to_alloy
+    "nil"
+  end
+  def to_simpleAst
     "nil"
   end
 end

@@ -1,0 +1,43 @@
+GIT
+  remote: https://github.com/aleksandarmilicevic/method_source.git
+  revision: c3e49bd036fe8f885e358dc03d687b52a2291b8e
+  specs:
+    method_source (0.8.3.1)
+
+GIT
+  remote: https://github.com/aleksandarmilicevic/sdg_utils.git
+  revision: c6994ad7bfa0dc2e3c2037d9c18f97b42e6ef546
+  specs:
+    sdg_utils (0.0.1)
+      method_source (>= 0.8.3)
+      nilio
+      parser (>= 2.0.0.pre7)
+
+GIT
+  remote: https://github.com/jnear/fnruby.git
+  revision: 8d88734fdc63dc43b9c7994cc89863991af12a81
+  specs:
+    fnruby (0.0.3)
+
+GEM
+  specs:
+    ast (1.1.0)
+    coderay (1.1.0)
+    nilio (1.0.0)
+    parser (2.0.0)
+      ast (~> 1.1)
+      slop (~> 3.4, >= 3.4.5)
+    pry (0.10.0)
+      coderay (~> 1.1.0)
+      method_source (~> 0.8.1)
+      slop (~> 3.4)
+    slop (3.5.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  fnruby!
+  method_source (~> 0.8.3)!
+  pry
+  sdg_utils!
