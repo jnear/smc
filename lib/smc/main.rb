@@ -46,7 +46,7 @@ end
 
 def mk_op_sigs
 #  $read_exposures.map{|x| mk_one_op(x)}.select{|x| filter_op(x)}.join("\n")
-  to_process = $read_exposures.take(20)
+  to_process = $read_exposures#.take(20)
 
   asts = to_process.map{|x| mk_one_op(x)}
 

@@ -18,7 +18,7 @@ def simp_id(id)
     AId(id)
   elsif r = /find_by_(.+)/.match(id) then
     # need to do some twiddling here, I think
-    AId(id)
+    AlloyOp(AId("univ"), AId("->"), AId("~" + r[1]))
   elsif r = /current_user_(.+)/.match(id) then
     # we don't need ids
     AId("current_user")
