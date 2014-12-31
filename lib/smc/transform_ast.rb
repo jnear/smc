@@ -46,8 +46,9 @@ def mk_id(str)
   }
 end
 
-def process(ast)
+def convert_to_alloy(ast)
 #  puts ast
+  alias :process :convert_to_alloy
   r = match { with ast,
     String(str) => mk_id(str),
     Id(str) => mk_id(str),
@@ -79,15 +80,16 @@ end
 
 
 # AlloyAST = AId(str) | Not(a) | AlloyOp(a, op, b) | Join(a, b) | RJoin(a, args) }
-def simp(ast)
+def simplify_ids(ast)
   r = match { with ast,
     AId(str) | (str.is_a? String) => simp_id(str),
-    els => recurse(method(:simp), els)
+    els => recurse(method(:simplify_ids), els)
   }
   r
 end
 
-def alstr(ast)
+def alloy_to_string(ast)
+  alias :alstr :alloy_to_string
   match { with ast,
     AId(str) => str,
     Not(a) => "(not #{alstr(a)})",

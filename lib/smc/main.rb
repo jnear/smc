@@ -50,9 +50,14 @@ def mk_op_sigs
 
   asts = to_process.map{|x| mk_one_op(x)}
 
+  passes = [:convert_to_alloy,
+            :simplify_ids,
+            :alloy_to_string
+            ]
+
   alloy = asts.map{|x| 
     begin
-      alstr(simp(process(x)))
+      passes.inject(x) {|ast, next_pass| method(next_pass).call(ast)}
     rescue => msg
       "error: " + msg.to_s + "\n    (#{x.to_s})"
     end 
