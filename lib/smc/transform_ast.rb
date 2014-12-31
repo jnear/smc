@@ -42,7 +42,8 @@ def mk_id(str)
   match { with str,
     String(str) => mk_id(str),
     Id(str) => mk_id(str),
-    str => AId(str)
+    str | (str.is_a? String) => AId(str),
+    els => convert_to_alloy(els)
   }
 end
 
@@ -56,6 +57,7 @@ def convert_to_alloy(ast)
     BinOp(a, op, b) => AlloyOp(process(a), process(op), process(b)),
     Invoke(obj, meth, args) | (args.is_a? Array) => RJoin(Join(process(obj), process(meth)), args.map{|x| process(x)}),
     Invoke(obj, meth, args) => RJoin(Join(process(obj), process(meth)), process(args)),
+    str | (str.is_a? String) => AId(str),
     str => raise("fail: process {" + str.to_s + "}")
   }
 
@@ -64,8 +66,9 @@ def convert_to_alloy(ast)
 end
 
 def recurse(p, ast)
-  match { with ast,
-    AId(str) => str,
+#  puts p, ast
+  r = match { with ast,
+    AId(str) => AId(str),
     Not(a) => Not(p.call(a)),
     AlloyOp(a, op, b) => AlloyOp(p.call(a),
                                  p.call(op),
@@ -75,17 +78,28 @@ def recurse(p, ast)
     RJoin(a, args) => RJoin(p.call(a),
                             args.map{|x| p.call(x)})
   }
+  if r == false then
+    raise "failed recurse (#{p}): #{ast.class}: #{ast}"
+  end
+  r
 end
 
 
 
 # AlloyAST = AId(str) | Not(a) | AlloyOp(a, op, b) | Join(a, b) | RJoin(a, args) }
 def simplify_ids(ast)
-  r = match { with ast,
+  match { with ast,
     AId(str) | (str.is_a? String) => simp_id(str),
+    RJoin(Join(a, AId("find")), b) => simplify_ids(a),
     els => recurse(method(:simplify_ids), els)
   }
-  r
+end
+
+def fix_current_user(ast)
+  match { with ast,
+    AId("current_user") => AId("some current_user"),
+    els => els
+  }
 end
 
 def alloy_to_string(ast)
@@ -95,6 +109,15 @@ def alloy_to_string(ast)
     Not(a) => "(not #{alstr(a)})",
     AlloyOp(a, op, b) => "(#{alstr(a)} #{alstr(op)} #{alstr(b)})",
     Join(a, b) => "(#{alstr(a)}.#{alstr(b)})",
-    RJoin(a, args) => "(#{alstr(a)}[#{args.map{|a| alstr(a)}.join(", ")}])"
+    RJoin(a, args) => "(#{alstr(a)}[#{args.map{|a| alstr(a)}.join(", ")}])",
+    els => raise("fail: alloy_to_string {" + els.to_s + "}")
   }
+end
+
+def filter_results(str)
+  if str == "a_string" or str == nil then
+    false
+  else
+    true
+  end
 end
