@@ -62,16 +62,37 @@ def process(ast)
 
 end
 
+def recurse(p, ast)
+  match { with ast,
+    AId(str) => str,
+    Not(a) => Not(p.call(a)),
+    AlloyOp(a, op, b) => AlloyOp(p.call(a),
+                                 p.call(op),
+                                 p.call(b)),
+    Join(a, b) => Join(p.call(a),
+                       p.call(b)),
+    RJoin(a, args) => RJoin(p.call(a),
+                            args.map{|x| p.call(x)})
+  }
+end
+
+
 
 # AlloyAST = AId(str) | Not(a) | AlloyOp(a, op, b) | Join(a, b) | RJoin(a, args) }
 def simp(ast)
   r = match { with ast,
     AId(str) | (str.is_a? String) => simp_id(str),
-    AId(ast) => simp(ast),
-    Not(a) => Not(simp(a)),
-    AlloyOp(a, op, b) => AlloyOp(simp(a), simp(op), simp(b)),
-    Join(a, b) => Join(simp(a), simp(b)),
-    RJoin(a, args) => RJoin(simp(a), args.map{|x| simp(x)})
+    els => recurse(method(:simp), els)
   }
   r
+end
+
+def alstr(ast)
+  match { with ast,
+    AId(str) => str,
+    Not(a) => "(not #{alstr(a)})",
+    AlloyOp(a, op, b) => "(#{alstr(a)} #{alstr(op)} #{alstr(b)})",
+    Join(a, b) => "(#{alstr(a)}.#{alstr(b)})",
+    RJoin(a, args) => "(#{alstr(a)}[#{args.map{|a| alstr(a)}.join(", ")}])"
+  }
 end

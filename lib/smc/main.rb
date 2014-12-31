@@ -46,17 +46,19 @@ end
 
 def mk_op_sigs
 #  $read_exposures.map{|x| mk_one_op(x)}.select{|x| filter_op(x)}.join("\n")
-  to_process = $read_exposures#.take(20)
+  to_process = $read_exposures
 
   asts = to_process.map{|x| mk_one_op(x)}
 
-  asts.map{|x| 
+  alloy = asts.map{|x| 
     begin
-      simp(process(x))
+      alstr(simp(process(x)))
     rescue => msg
-      "error: " + msg.to_s
-    end
+      "error: " + msg.to_s + "\n    (#{x.to_s})"
+    end 
   }.join("\n")
+
+  alloy
 end
 
 
