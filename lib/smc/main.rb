@@ -38,9 +38,9 @@ def exp_to_ast(exp)
   end
 end
 
-def mk_op_sigs
+def mk_op_sigs(to_process)
 #  $read_exposures.map{|x| mk_one_op(x)}.select{|x| filter_op(x)}.join("\n")
-  to_process = $read_exposures
+  #to_process = $read_exposures
 
   asts = to_process.map{|x| 
     [exp_to_ast(x.path)] + x.constraints.map{|c| exp_to_ast(c)}
@@ -75,6 +75,28 @@ end
 
 puts mk_data_model_sigs
 
-mk_op_sigs.each do |s|
-  puts "[" + s.join(", ") + "]\n"
+reads = mk_op_sigs($read_exposures)
+
+reads.each_with_index do |s, i|
+  puts "sig Read#{i} extends Read {}"
 end
+
+puts " "
+puts "pred policy {"
+
+reads.each_with_index do |s, i|
+  first, *rest = s
+  puts " all r: Read#{i} {\n" + 
+    "   r.target in #{first}\n" +
+    "   " + rest.join(" and ") +
+    "\n }\n"
+end
+
+puts "}\n"
+
+
+# puts "WRITES:"
+
+# mk_op_sigs($write_exposures).each do |s|
+#   puts "[" + s.join(", ") + "]\n"
+# end
