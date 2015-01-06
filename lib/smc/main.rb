@@ -46,26 +46,32 @@ def mk_op_sigs(to_process)
     [exp_to_ast(x.path)] + x.constraints.map{|c| exp_to_ast(c)}
   }
 
-  passes = [:convert_to_alloy,
-            :simplify_ids,
-            :fix_current_user,
-            :alloy_to_string
-            ]
+  prep_passes = [:convert_to_alloy,
+                 :simplify_ids]
+
+  fml_passes = prep_passes + [:fix_current_user, :alloy_to_string]
+  expr_passes = prep_passes + [:alloy_to_string]
+
+  def run_passes(ast, passes)
+    cur_ast = ast
+    begin
+      passes.inject(ast) {|ast, next_pass| cur_ast = ast; method(next_pass).call(ast)}
+    rescue => msg
+      log "error: " + msg.to_s# + "\n    (#{cur_ast.to_s})"
+      nil
+    end 
+  end
 
   alloy = asts.map{|xs| 
-    xs.map{|x|
-      cur_ast = x
-      begin
-        result = passes.inject(x) {|ast, next_pass| cur_ast = ast; method(next_pass).call(ast)}
-        if result.to_s.include? "BinOp" then
-          binding.pry
-        end
-        result
-      rescue => msg
-        log "error: " + msg.to_s# + "\n    (#{cur_ast.to_s})"
-        nil
-      end 
-    }.select{|x| filter_results(x)}.uniq
+    first, *rest = xs
+
+    fst = run_passes(first, expr_passes)
+    if filter_results(fst) then
+      [fst] +
+        rest.map{|x| run_passes(x, fml_passes)}.select{|x| filter_results(x)}.uniq
+    else
+      []
+    end
   }.select{|x| x != []}.uniq
 
   alloy
