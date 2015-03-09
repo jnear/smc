@@ -26,7 +26,7 @@ def mk_data_model_sigs
 end
 
 
-PUTS_LOG = false
+PUTS_LOG = true
 def log(str)
   if PUTS_LOG then
     puts str
@@ -37,7 +37,7 @@ def exp_to_ast(exp)
   begin
     exp.to_simpleAst
   rescue => msg
-    log "error converting " + exposure.to_s + ": " + msg.to_s
+    log "error converting " + exp.to_s + ": " + msg.to_s
   end
 end
 
@@ -60,7 +60,7 @@ def mk_op_sigs(to_process)
     begin
       passes.inject(ast) {|ast, next_pass| cur_ast = ast; method(next_pass).call(ast)}
     rescue => msg
-      log "error: " + msg.to_s# + "\n    (#{cur_ast.to_s})"
+      log "error: " + msg.to_s + "\n    (#{cur_ast.to_s})"
       nil
     end 
   end
@@ -99,7 +99,7 @@ updates = mk_op_sigs($update_exposures)
 
 op_sigs = reads.each_with_index.map do |s, i|
   "sig Read#{i} extends Read {}"
-end.join("\n") + "\n"
+end.join("\n") + "\n" +
   updates.each_with_index.map do |s, i|
   "sig Update#{i} extends Update {}"
 end.join("\n")

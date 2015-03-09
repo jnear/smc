@@ -11,7 +11,7 @@ def simp_id(id)
 
 
   ops = ["==", "+", "-", "and", "or", "not"]
-  special_ids = ["current_user", "a_string", "new"] + ops
+  special_ids = ["current_user", "a_string", "new", "update_attributes", "find_by", "some_hash"] + ops
   regexps = [/find_by_(.+)/, /current_user_(.+)/]
 
   if klasses.include? id or special_ids.include? id then
@@ -99,6 +99,8 @@ def alloy_to_string(ast)
   alias :alstr :alloy_to_string
   match { with ast,
     Join(a, AId("new")) => alstr(a),
+    RJoin(Join(a, AId("find_by")), b) => alstr(a), # this one is not quite cool
+    Join(a, AId("update_attributes")) => alstr(a),
     AId(str) => str,
     Not(a) => "(not #{alstr(a)})",
     AlloyOp(a, op, b) => "(#{alstr(a)} #{alstr(op)} #{alstr(b)})",

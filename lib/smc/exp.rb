@@ -118,3 +118,10 @@ class NilClass
     "nil"
   end
 end
+
+
+class Hash
+  def to_simpleAst
+    String "some_hash"
+  end
+end
