@@ -14,10 +14,13 @@ require '/home/ubuntu/derailer/lib/derailer/viz/exposures.rb'
 # puts $read_exposures
 # puts $data_model
 
+$used_fields = []
+
 def mk_data_model_sigs
   alloy_sigs = $data_model.map{|klass, fields|
     "sig " + klass + " extends Object {\n" +
-    fields.map{|field, type| "  " + field + ": " + type}.join(",\n") +
+    fields.select{|field, type| $used_fields.include? field}.
+    map{|field, type| "  " + field + ": " + type}.join(",\n") +
     "\n}\n"}.join("\n")
   alloy_sigs
 end
@@ -77,29 +80,44 @@ def mk_op_sigs(to_process)
   alloy
 end
 
+def mk_policy(typ, xs)
+  xs.each_with_index.map do |s, i|
+    first, *rest = s
+    " all r: #{typ}#{i} {\n" + 
+      "   r.target in #{first}\n" +
+      "   " + rest.join(" and ") +
+      "\n }\n"
+  end.join("\n")
+end
+
+#puts "updates: #{$update_exposures}"
 
 
-puts mk_data_model_sigs
 
 reads = mk_op_sigs($read_exposures)
+updates = mk_op_sigs($update_exposures)
 
-reads.each_with_index do |s, i|
-  puts "sig Read#{i} extends Read {}"
-end
+op_sigs = reads.each_with_index.map do |s, i|
+  "sig Read#{i} extends Read {}"
+end.join("\n") + "\n"
+  updates.each_with_index.map do |s, i|
+  "sig Update#{i} extends Update {}"
+end.join("\n")
 
-puts " "
-puts "pred policy {"
 
-reads.each_with_index do |s, i|
-  first, *rest = s
-  puts " all r: Read#{i} {\n" + 
-    "   r.target in #{first}\n" +
-    "   " + rest.join(" and ") +
-    "\n }\n"
-end
+policy = "pred policy {\n" +
+  mk_policy("Read", reads) + "\n\n" +
+  mk_policy("Update", updates) +
+  "\n}\n"
 
-puts "}\n"
+puts mk_data_model_sigs + "\n"
 
+puts op_sigs + "\n\n"
+puts policy + "\n\n"
+
+
+
+#puts "USED FIELDS #{$used_fields}"
 
 # puts "WRITES:"
 

@@ -11,10 +11,13 @@ def simp_id(id)
 
 
   ops = ["==", "+", "-", "and", "or", "not"]
-  special_ids = ["current_user", "a_string"] + ops
+  special_ids = ["current_user", "a_string", "new"] + ops
   regexps = [/find_by_(.+)/, /current_user_(.+)/]
 
-  if klasses.include? id or special_ids.include? id or fields.include? id then
+  if klasses.include? id or special_ids.include? id then
+    AId(id)
+  elsif fields.include? id then
+    $used_fields << id unless $used_fields.include? id
     AId(id)
   elsif r = /find_by_(.+)/.match(id) then
     # need to do some twiddling here, I think
@@ -27,16 +30,6 @@ def simp_id(id)
   end
 end
 
-def ok_field(id)
-  #puts "checking field " + id.to_s
-  fields = $data_model.flat_map{|klass, fields| fields.map{|field, type| field}}
-  r = match { with id,
-    AId(i) => (fields.include? i)
-  }
-
-  puts "checking field " + id.to_s + ": " + r.to_s
-  r
-end
 
 def mk_id(str)
   match { with str,
@@ -105,6 +98,7 @@ end
 def alloy_to_string(ast)
   alias :alstr :alloy_to_string
   match { with ast,
+    Join(a, AId("new")) => alstr(a),
     AId(str) => str,
     Not(a) => "(not #{alstr(a)})",
     AlloyOp(a, op, b) => "(#{alstr(a)} #{alstr(op)} #{alstr(b)})",
