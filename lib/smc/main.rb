@@ -135,7 +135,7 @@ class SMCAnalyzer
     end
   end
 
-  def file(f)
+  def exposures_file(f)
     @file = f
   end
 
