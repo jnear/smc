@@ -9,24 +9,58 @@ Exposure = Struct.new(:path, :constraints, :controller, :action) do
   end
 end
 
-require '/home/ubuntu/derailer/lib/derailer/viz/exposures.rb'
+MapElement = Struct.new(:klass, :field_mapping)
+
+#require '/home/ubuntu/derailer/lib/derailer/viz/exposures.rb'
 
 # puts $read_exposures
 # puts $data_model
 
 $used_fields = []
 
-def mk_data_model_sigs
-  alloy_sigs = $data_model.map{|klass, fields|
-    "sig " + klass + " extends Object {\n" +
-    fields.select{|field, type| $used_fields.include? field}.
-    map{|field, type| "  " + field + ": " + type}.join(",\n") +
-    "\n}\n"}.join("\n")
+def fix_type(type)
+  match { with type,
+    "string" => "SString",
+    "integer" => "Int",
+    t => t
+  }
+end
+
+def get_sig_extends(sig, mapping)
+  match { with mapping[sig.to_sym],
+    nil => "Object",
+    r | (r.is_a? MapElement) => r.klass,
+    r => r
+  }
+end
+
+def mk_sig_facts(sig, mapping)
+  def mkfacts(fm)
+    fm.map do |k, v|
+      "#{k} = #{v}"
+    end.join(" and ")
+  end
+
+  match { with mapping[sig.to_sym],
+    nil => "",
+    r | (r.is_a? String) => "",
+    r | (r.is_a? MapElement) => "{ #{mkfacts(r.field_mapping)} }",
+    els => raise("error in mk_sig_facts")
+  }
+end
+
+def mk_data_model_sigs(mapping)
+  alloy_sigs = $data_model.map do |klass, fields|
+    "sig #{klass} extends #{get_sig_extends(klass, mapping)} {\n" +
+      fields.select{|field, type| $used_fields.include? field}.
+      map{|field, type| "  #{field}: #{fix_type(type)}"}.join(",\n") +
+      "\n} #{mk_sig_facts(klass, mapping)}\n"
+  end.join("\n")
   alloy_sigs
 end
 
 
-PUTS_LOG = true
+PUTS_LOG = false
 def log(str)
   if PUTS_LOG then
     puts str
@@ -92,28 +126,68 @@ end
 
 #puts "updates: #{$update_exposures}"
 
+class SMCAnalyzer
+  def method_missing(m, *args)
+    if args == [] then
+      m.to_s
+    else
+      MapElement.new(m.to_s, args.first)
+    end
+  end
+
+  def file(f)
+    @file = f
+  end
+
+  def mapping(hash)
+    @mapping = hash
+  end
+
+  def run_analysis
+    require @file
+
+    reads = mk_op_sigs($read_exposures)
+    updates = mk_op_sigs($update_exposures)
+
+    op_sigs = reads.each_with_index.map do |s, i|
+      "sig Read#{i} extends Read {}"
+    end.join("\n") + "\n" +
+      updates.each_with_index.map do |s, i|
+      "sig Update#{i} extends Update {}"
+    end.join("\n")
 
 
-reads = mk_op_sigs($read_exposures)
-updates = mk_op_sigs($update_exposures)
+    policy = "pred policy {\n" +
+      mk_policy("Read", reads) + "\n\n" +
+      mk_policy("Update", updates) +
+      "\n}\n"
 
-op_sigs = reads.each_with_index.map do |s, i|
-  "sig Read#{i} extends Read {}"
-end.join("\n") + "\n" +
-  updates.each_with_index.map do |s, i|
-  "sig Update#{i} extends Update {}"
-end.join("\n")
+    puts mk_data_model_sigs(@mapping) + "\n"
 
+    puts op_sigs + "\n\n"
+    puts policy + "\n\n"
 
-policy = "pred policy {\n" +
-  mk_policy("Read", reads) + "\n\n" +
-  mk_policy("Update", updates) +
-  "\n}\n"
+    puts "check {\n  (policy implies general_policy_base)\n} for 2 but 0 Delete\n"
 
-puts mk_data_model_sigs + "\n"
+    #puts @mapping
+  end
+end
 
-puts op_sigs + "\n\n"
-puts policy + "\n\n"
+class Module
+  def const_missing(name)
+    const_set(name, name.to_s)
+  end
+end
+
+module SMC
+  def self.analyze(&block)
+    s = SMCAnalyzer.new
+    s.instance_eval(&block)
+
+    s.run_analysis
+  end
+end
+
 
 
 
